@@ -1,5 +1,6 @@
 #include <pch.hpp>
 #include <Engine.hpp>
+#include <TestScene.hpp>
 
 class cApplication : public cEngine
 {
@@ -30,7 +31,9 @@ protected:
 
     void SetupScenes(std::map<string, cScene*>& mScenes, string* sInitialScene) override
     {
+        mScenes["TestScene"] = new cTestScene();
 
+        *sInitialScene = "TestScene";
     }
 
     void LoadOverlayWindows(std::map<string, cOverlayWindow*>& mOverlayWindows) override

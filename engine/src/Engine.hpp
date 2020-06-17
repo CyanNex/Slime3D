@@ -408,7 +408,8 @@ void cEngine::MainLoop()
             // Ask the application for the scenes
             string sActiveScene;
             SetupScenes(ppSceneManager->GetScenes(), &sActiveScene);
-            assert(!sActiveScene.empty());
+            assert(!ppSceneManager->GetScenes().empty()); // there have to be scenes
+            assert(!sActiveScene.empty());                // there has to be an active scene
 
             // Load the scene
             ppSceneManager->SwitchScene(sActiveScene);

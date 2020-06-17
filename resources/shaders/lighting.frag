@@ -85,7 +85,7 @@ vec3 HandlePBR(vec3 fragPos, vec3 norm, vec3 albedo, vec2 material)
     vec3 F0 = mix(vec3(0.04), albedo, metalness);
 
     vec3 Lo = vec3(0);
-    for (uint index = 0; index < ubo.lightsCount; index++)
+    for (uint index = 0; index < ubo.lightsCount + 1; index++)
     {
         Light light = ubo.lights[index];
         vec3 lightPos = light.position.xyz;

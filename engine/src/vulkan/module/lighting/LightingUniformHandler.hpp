@@ -168,7 +168,7 @@ void cLightingUniformHandler::CreateUniformBuffers(cScene* pScene)
     static_assert(sizeof(tLightsInfo) <= 48, "Alignment code needs to be updated when tLightsInfo changes");
     static_assert(sizeof(tLight) == 32, "Alignment code needs to be updated when tLight changes");
 
-    puiLightsMemorySize = 32 + (sizeof(tLight) * puiLightsCount);
+    puiLightsMemorySize = 64 + (sizeof(tLight) * puiLightsCount);
     cBufferHelper::CreateBuffer(ppLogicalDevice, puiLightsMemorySize,
                                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,

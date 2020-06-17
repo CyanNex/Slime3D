@@ -71,7 +71,7 @@ void cAsyncLoader<T>::StartLoaderThread()
     // Keep looping while the loader threads should run
     while (pbLoaderRunning)
     {
-        // Aqcuire the load queue mutex
+        // Acquire the load queue mutex
         std::unique_lock<std::mutex> tLoadLock(ptLoadQueueMutex);
         // If the load queue is empty, wait until notified (blocks current thread)
         if (papLoadQueue.empty()) ptLoadQueueVariable.wait(tLoadLock);
@@ -85,8 +85,15 @@ void cAsyncLoader<T>::StartLoaderThread()
         // Release the load queue mutex
         tLoadLock.unlock();
 
-        // Perform the load operation(s)
-        LoadCallback(pObject);
+        try
+        {
+            // Perform the load operation(s)
+            LoadCallback(pObject);
+        }
+        catch (const std::exception& ex)
+        {
+            ENGINE_ERROR("Error in loader thread", ex)
+        }
 
         // Decrement the amount of objects waiting to load
         puiLoadingCount--;
@@ -100,7 +107,7 @@ void cAsyncLoader<T>::StartLoaderThread()
 template<class T>
 void cAsyncLoader<T>::LoadAsync(T* pObject)
 {
-    // Aqcuire the load queue mutex
+    // Acquire the load queue mutex
     ptLoadQueueMutex.lock();
     // Add the object to the load queue
     papLoadQueue.push(pObject);
