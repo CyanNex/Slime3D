@@ -7,6 +7,13 @@
 #include <vulkan/swapchain/SwapChain.hpp>
 #include <vulkan/command/CommandBuffer.hpp>
 
+enum eRenderStage
+{
+    RENDER_STAGE_MRT = 0,
+    RENDER_STAGE_LIGHTING = 1,
+    RENDER_STAGE_OVERLAY = 2,
+};
+
 class cRenderHandler
 {
 private:
@@ -17,16 +24,14 @@ private:
     cCommandBuffer** ppCommandBuffers = nullptr;
     iUniformHandler** ppUniformHandlers = nullptr;
 
-    uint puiUniformHandlerCount;
+    uint puiUniformHandlerCount = 0;
     std::vector<VkSemaphore> aoImageAvailableSemaphores;
     std::vector<VkSemaphore> aoMRTFinishedSemaphores;
-    std::vector<VkSemaphore> aoRenderFinishedSemaphores;
+    std::vector<VkSemaphore> aoLightingFinishedSemaphores;
 
     std::vector<VkFence> aoInFlightFences;
 
     uint uiCurrentFrame = 0;
-
-    bool pbFenceWait = true;
 
 public:
     cRenderHandler(cLogicalDevice* pLogicalDevice,
@@ -39,7 +44,18 @@ public:
     void DrawFrame(cScene* pScene);
 
     void SetUniformHandlers(iUniformHandler** pUniformHandlers, uint uiUniformHandlerCount);
+
+private:
+    void SubmitMRTRenderStage(uint uiImageIndex);
+    void SubmitLightingRenderStage(uint uiImageIndex);
+    void SubmitPresentStage(uint uiImageIndex);
+
+    static VkSubmitInfo CreateSubmitInfo(VkSemaphore* poWaitSemaphore, VkPipelineStageFlags eWaitStage,
+                                         VkSemaphore* poSignalSemaphore,
+                                         VkCommandBuffer* poCommandBuffers, uint uiCommandBufferCount);
 };
+
+static VkFence oNullFence = VK_NULL_HANDLE;
 
 cRenderHandler::cRenderHandler(cLogicalDevice* pLogicalDevice,
                                cSwapChain* pSwapChain,
@@ -61,11 +77,17 @@ cRenderHandler::~cRenderHandler()
     VkDevice& oDevice = ppLogicalDevice->GetDevice();
     for (uint i = 0; i < uiMAX_FRAMES_IN_FLIGHT; i++)
     {
-        vkDestroySemaphore(oDevice, aoRenderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(oDevice, aoLightingFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(oDevice, aoMRTFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(oDevice, aoImageAvailableSemaphores[i], nullptr);
         vkDestroyFence(oDevice, aoInFlightFences[i], nullptr);
     }
+}
+
+void cRenderHandler::SetUniformHandlers(iUniformHandler** pUniformHandlers, uint uiUniformHandlerCount)
+{
+    ppUniformHandlers = pUniformHandlers;
+    puiUniformHandlerCount = uiUniformHandlerCount;
 }
 
 void cRenderHandler::CreateSemaphores()
@@ -75,7 +97,7 @@ void cRenderHandler::CreateSemaphores()
     // Resize all the semaphore & fence lists to the max amount of frames in flight
     aoImageAvailableSemaphores.resize(uiMAX_FRAMES_IN_FLIGHT);
     aoMRTFinishedSemaphores.resize(uiMAX_FRAMES_IN_FLIGHT);
-    aoRenderFinishedSemaphores.resize(uiMAX_FRAMES_IN_FLIGHT);
+    aoLightingFinishedSemaphores.resize(uiMAX_FRAMES_IN_FLIGHT);
     aoInFlightFences.resize(uiMAX_FRAMES_IN_FLIGHT);
 
     // Struct with information about the semaphores
@@ -92,7 +114,7 @@ void cRenderHandler::CreateSemaphores()
         // For every frame, create the two semaphores and the fence
         if (vkCreateSemaphore(oDevice, &tSemaphoreInfo, nullptr, &aoImageAvailableSemaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(oDevice, &tSemaphoreInfo, nullptr, &aoMRTFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(oDevice, &tSemaphoreInfo, nullptr, &aoRenderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(oDevice, &tSemaphoreInfo, nullptr, &aoLightingFinishedSemaphores[i]) != VK_SUCCESS ||
             vkCreateFence(oDevice, &tFenceInfo, nullptr, &aoInFlightFences[i]) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create semaphores for a frame!");
@@ -100,17 +122,36 @@ void cRenderHandler::CreateSemaphores()
     }
 }
 
+VkSubmitInfo cRenderHandler::CreateSubmitInfo(VkSemaphore* poWaitSemaphore, VkPipelineStageFlags eWaitStage,
+                                              VkSemaphore* poSignalSemaphore, VkCommandBuffer* poCommandBuffers,
+                                              uint uiCommandBufferCount)
+{
+    // Struct with information about the command buffer we want to submit to the queue
+    VkSubmitInfo tSubmitInfo = {};
+    tSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    // Specifies which semaphores to wait on and in which stage(s) of the pipeline to wait
+    VkPipelineStageFlags aeWaitStages[] = {eWaitStage};
+    tSubmitInfo.pWaitDstStageMask = aeWaitStages;
+    tSubmitInfo.waitSemaphoreCount = 1;
+    tSubmitInfo.pWaitSemaphores = poWaitSemaphore;
+
+    // Specify which command buffers to submit
+    tSubmitInfo.commandBufferCount = uiCommandBufferCount;
+    tSubmitInfo.pCommandBuffers = poCommandBuffers;
+
+    // Specify which semaphores to signal once the command buffer(s) finish
+    tSubmitInfo.signalSemaphoreCount = 1;
+    tSubmitInfo.pSignalSemaphores = poSignalSemaphore;
+
+    return tSubmitInfo;
+}
+
 void cRenderHandler::DrawFrame(cScene* pScene)
 {
-    static VkFence oNullFence = VK_NULL_HANDLE;
-
-    if (pbFenceWait)
-    {
-        // Wait for the fence of the current frame and reset it to the unsignalled state
-        ppLogicalDevice->WaitForFences(1, &aoInFlightFences[uiCurrentFrame], VK_TRUE, UINT64_MAX);
-        ppLogicalDevice->ResetFences(1, &aoInFlightFences[uiCurrentFrame]);
-        pbFenceWait = false;
-    }
+    // Wait for the fence of the current frame and reset it to the unsignaled state
+    ppLogicalDevice->WaitForFences(1, &aoInFlightFences[uiCurrentFrame], VK_TRUE, UINT64_MAX);
+    ppLogicalDevice->ResetFences(1, &aoInFlightFences[uiCurrentFrame]);
 
     // Acquire the next image from the swap chain
     uint uiImageIndex;
@@ -128,60 +169,65 @@ void cRenderHandler::DrawFrame(cScene* pScene)
         }
     }
 
-    // Struct with information about the command buffer we want to submit to the queue
-    VkSubmitInfo tSubmitInfo = {};
-    tSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    this->SubmitMRTRenderStage(uiImageIndex);
+    this->SubmitLightingRenderStage(uiImageIndex);
+    this->SubmitPresentStage(uiImageIndex);
 
-    // Specifies which semaphores to wait on and in which stage(s) of the pipeline to wait
-    VkPipelineStageFlags aeWaitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    tSubmitInfo.waitSemaphoreCount = 1;
-    tSubmitInfo.pWaitSemaphores = &aoImageAvailableSemaphores[uiCurrentFrame];
-    tSubmitInfo.pWaitDstStageMask = aeWaitStages;
+    // Advance to the next frame
+    uiCurrentFrame = (uiCurrentFrame + 1) % uiMAX_FRAMES_IN_FLIGHT;
+}
 
-    // Specify which command buffers to submit
+void cRenderHandler::SubmitMRTRenderStage(uint uiImageIndex)
+{
+    // We want to submit the command buffer for both the MRT stage and the overlay stage
+    // because we can let the GPU handle those simultaneously if it wants to.
     VkCommandBuffer aoBuffers[2] = {
-            ppCommandBuffers[0]->GetBuffer(uiImageIndex),
-            ppCommandBuffers[2]->GetBuffer(uiImageIndex)
+            ppCommandBuffers[RENDER_STAGE_MRT]->GetBuffer(uiImageIndex),
+            ppCommandBuffers[RENDER_STAGE_OVERLAY]->GetBuffer(uiImageIndex)
     };
 
-    tSubmitInfo.commandBufferCount = 2;
-    tSubmitInfo.pCommandBuffers = aoBuffers;
+    // We need to wait for the image to be available before we can start this stage.
+    // Once this stage is done we can signal the MRT finished semaphore.
+    VkSubmitInfo tSubmitInfo = CreateSubmitInfo(
+            &aoImageAvailableSemaphores[uiCurrentFrame], VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            &aoMRTFinishedSemaphores[uiCurrentFrame],
+            aoBuffers, 2
+    );
 
-    // Specify which semaphores to signal once the command buffer(s) finish
-    tSubmitInfo.signalSemaphoreCount = 1;
-    tSubmitInfo.pSignalSemaphores = &aoMRTFinishedSemaphores[uiCurrentFrame];
-
-    // Submit the command buffer to the queue
     if (!ppLogicalDevice->GraphicsQueueSubmit(1, &tSubmitInfo, oNullFence))
     {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
+}
 
-    // Specifies which semaphores to wait on
-    tSubmitInfo.pWaitSemaphores = &aoMRTFinishedSemaphores[uiCurrentFrame];
+void cRenderHandler::SubmitLightingRenderStage(uint uiImageIndex)
+{
+    // We only submit the lighting command buffer for this stage
+    VkCommandBuffer oBuffer = ppCommandBuffers[RENDER_STAGE_LIGHTING]->GetBuffer(uiImageIndex);
 
-    // Specify which command buffers to submit
-    tSubmitInfo.commandBufferCount = 1;
-    tSubmitInfo.pCommandBuffers = &ppCommandBuffers[1]->GetBuffer(uiImageIndex);
+    // We need to wait for the MRT stage to finish before we can start this stage.
+    // Once this stage is done we can signal the lighting finished semaphore.
+    VkSubmitInfo tSubmitInfo = CreateSubmitInfo(
+            &aoMRTFinishedSemaphores[uiCurrentFrame], VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            &aoLightingFinishedSemaphores[uiCurrentFrame],
+            &oBuffer, 1
+    );
 
-    // Specify which semaphores to signal once the command buffer(s) finish
-    tSubmitInfo.signalSemaphoreCount = 1;
-    tSubmitInfo.pSignalSemaphores = &aoRenderFinishedSemaphores[uiCurrentFrame];
-
-    // Submit the command buffer to the queue
     if (!ppLogicalDevice->GraphicsQueueSubmit(1, &tSubmitInfo, aoInFlightFences[uiCurrentFrame]))
     {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
-    pbFenceWait = true;
+}
 
+void cRenderHandler::SubmitPresentStage(uint uiImageIndex)
+{
     // Struct with information for submitting the image for presentation
     VkPresentInfoKHR tPresentInfo = {};
     tPresentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-    // Specify which semaphores to wait on before presenting
+    // We need to wait until the lighting stage is finished rendering
     tPresentInfo.waitSemaphoreCount = 1;
-    tPresentInfo.pWaitSemaphores = &aoRenderFinishedSemaphores[uiCurrentFrame];
+    tPresentInfo.pWaitSemaphores = &aoLightingFinishedSemaphores[uiCurrentFrame];
 
     // Specify the swap chains and the index of the image for each swap chain
     VkSwapchainKHR swapChains[] = {ppSwapChain->poSwapChain};
@@ -194,13 +240,4 @@ void cRenderHandler::DrawFrame(cScene* pScene)
 
     // Queue the image for presentation
     ppLogicalDevice->QueuePresent(&tPresentInfo);
-
-    // Advance to the next frame
-    uiCurrentFrame = (uiCurrentFrame + 1) % uiMAX_FRAMES_IN_FLIGHT;
-}
-
-void cRenderHandler::SetUniformHandlers(iUniformHandler** pUniformHandlers, uint uiUniformHandlerCount)
-{
-    ppUniformHandlers = pUniformHandlers;
-    puiUniformHandlerCount = uiUniformHandlerCount;
 }
