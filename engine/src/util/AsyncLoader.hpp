@@ -93,7 +93,7 @@ void cAsyncLoader<T>::StartLoaderThread()
         }
         catch (const std::exception& ex)
         {
-            ENGINE_ERROR("Error in loader thread", ex)
+            ENGINE_EXCEPT("Error in loader thread", ex)
         }
 
         // Decrement the amount of objects waiting to load

@@ -6,7 +6,7 @@
 
 class cBaseObject
 {
-private:
+protected:
     cMesh* ppMesh;
     bool pbStatic;
 

@@ -36,10 +36,10 @@ void cEngine::InitWindow()
 
 void cEngine::InitAudio()
 {
-//    ENGINE_LOG("Initializing audio system...");
+    ENGINE_LOG("Initializing audio system...");
 
     // Create a new audio handler
-//    ppAudioHandler = new cAudioHandler();
+    ppAudioHandler = new cAudioHandler();
 }
 
 void cEngine::InitVulkan()
@@ -222,7 +222,7 @@ void cEngine::MainLoop()
         }
 
         // Update the audio handler
-//        ppAudioHandler->Update();
+        ppAudioHandler->Update();
 
         // Draw a frame
         ppRenderHandler->DrawFrame(pScene);
@@ -272,8 +272,8 @@ void cEngine::MainLoop()
             ppOverlayRenderModule->CreateCommandRecorder();
             RecordCommandBuffers();
 
-            // Pass the camera reference to the audio handler
-//            ppAudioHandler->SetCamera(pScene->GetCameraRef());
+            // Pass the scene to the audio handler
+            ppAudioHandler->SetScene(pScene);
 
             ENGINE_LOG("Scene loaded (took " << STOP_TIMING("EngineLoad") << "ms), adding tick task...");
             pScene->AfterLoad();
@@ -326,8 +326,8 @@ void cEngine::Cleanup()
 {
     ENGINE_LOG("Cleaning up engine...");
 
-//    delete ppAudioHandler;
-//
+    delete ppAudioHandler;
+
 //    for (const auto& oOverlayWindow : pmOverlayWindows)
 //    {
 //        delete oOverlayWindow.second;
@@ -427,8 +427,8 @@ void cEngine::UpdateScene()
     // Close the active overlay window
 //    DeactivateOverlayWindow();
 //
-//    // Get the scene ready and add a tick task for it
-//    ppAudioHandler->SetCamera(pScene->GetCameraRef());
+    // Get the scene ready and add a tick task for it
+    ppAudioHandler->SetScene(pScene);
     pScene->AfterLoad();
     ppGameLoop->AddTask(pScene);
 

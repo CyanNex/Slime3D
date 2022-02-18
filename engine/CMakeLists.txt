@@ -7,6 +7,9 @@ find_package(GLEW REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glm REQUIRED)
+find_package(OpenAL REQUIRED)
+
+include(vendor/freealut.cmake)
 
 # glfw doesn't set it's libraries variable properly
 set(GLFW_LIBRARIES glfw)
@@ -23,4 +26,6 @@ add_library(${This} STATIC ${EngineSources})
 # include our headers dir with the target
 target_include_directories(${This} PUBLIC ${EngineHeadersDir})
 # link our dependencies to the target
-target_link_libraries(${This} PUBLIC ${GLFW_LIBRARIES} ${Vulkan_LIBRARIES} ${GLEW_LIBRARIES})
+target_link_libraries(
+        ${This} PUBLIC ${GLFW_LIBRARIES} ${Vulkan_LIBRARIES} ${GLEW_LIBRARIES} ${OPENAL_LIBRARY} ${FREEALUT_LIBRARY}
+)

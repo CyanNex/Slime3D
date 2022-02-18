@@ -6,6 +6,7 @@
 #include <loop/GameLoop.h>
 #include <scene/Scene.h>
 #include <scene/SceneManager.h>
+#include <audio/AudioHandler.h>
 
 #include <vulkan/Window.h>
 #include <vulkan/VulkanInstance.h>
@@ -62,7 +63,7 @@ private:
     // Scene manager for storing and loading scenes
     cSceneManager* ppSceneManager = nullptr;
     // Audio handler for playing audio
-//    cAudioHandler* ppAudioHandler = nullptr;
+    cAudioHandler* ppAudioHandler = nullptr;
 
     // Map with all loaded overlay windows
 //    std::map<string, cOverlayWindow*> pmOverlayWindows;
