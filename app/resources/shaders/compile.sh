@@ -6,6 +6,8 @@ if [[ -z "${VULKAN_SDK}" ]]; then
     glslc lighting.frag -o compiled/lighting.frag.spv
     glslc text.frag -o compiled/text.frag.spv
     glslc text.vert -o compiled/text.vert.spv
+    glslc scene.frag -o compiled/scene.frag.spv
+    glslc scene.vert -o compiled/scene.vert.spv
 else
     "${VULKAN_SDK}/bin/glslc" mrt.vert -o compiled/mrt.vert.spv
     "${VULKAN_SDK}/bin/glslc" mrt.frag -o compiled/mrt.frag.spv
@@ -13,4 +15,6 @@ else
     "${VULKAN_SDK}/bin/glslc" lighting.frag -o compiled/lighting.frag.spv
     "${VULKAN_SDK}/bin/glslc" text.frag -o compiled/text.frag.spv
     "${VULKAN_SDK}/bin/glslc" text.vert -o compiled/text.vert.spv
+    "${VULKAN_SDK}/bin/glslc" scene.frag -o compiled/scene.frag.spv
+    "${VULKAN_SDK}/bin/glslc" scene.vert -o compiled/scene.vert.spv
 fi

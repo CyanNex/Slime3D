@@ -4,10 +4,10 @@
 #include <vulkan/renderpass/RenderPass.h>
 #include <vulkan/swapchain/SwapChain.h>
 
-class cLightingRenderPass : public cRenderPass
+class cSceneRenderPass : public cRenderPass
 {
 public:
-    cLightingRenderPass(cLogicalDevice* pLogicalDevice, cSwapChain* pSwapChain);
+    cSceneRenderPass(cLogicalDevice* pLogicalDevice, cSwapChain* pSwapChain);
 
 private:
     static void GetColorAttachment(VkAttachmentDescription& tColorAttachment, cSwapChain* pSwapChain);

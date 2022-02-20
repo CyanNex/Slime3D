@@ -5,6 +5,7 @@ enum eRenderStage
     RENDER_STAGE_MRT = 0,
     RENDER_STAGE_LIGHTING = 1,
     RENDER_STAGE_OVERLAY = 2,
+    RENDER_STAGE_COMPOSE = 3,
 };
 
 static VkFence oNullFence = VK_NULL_HANDLE;
@@ -32,6 +33,7 @@ cRenderHandler::~cRenderHandler()
         vkDestroySemaphore(oDevice, aoLightingFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(oDevice, aoMRTFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(oDevice, aoImageAvailableSemaphores[i], nullptr);
+        vkDestroySemaphore(oDevice, aoComposeFinishedSemaphores[i], nullptr);
         vkDestroyFence(oDevice, aoInFlightFences[i], nullptr);
     }
 }
@@ -50,6 +52,7 @@ void cRenderHandler::CreateSemaphores()
     aoImageAvailableSemaphores.resize(uiMAX_FRAMES_IN_FLIGHT);
     aoMRTFinishedSemaphores.resize(uiMAX_FRAMES_IN_FLIGHT);
     aoLightingFinishedSemaphores.resize(uiMAX_FRAMES_IN_FLIGHT);
+    aoComposeFinishedSemaphores.resize(uiMAX_FRAMES_IN_FLIGHT);
     aoInFlightFences.resize(uiMAX_FRAMES_IN_FLIGHT);
 
     // Struct with information about the semaphores
@@ -67,6 +70,7 @@ void cRenderHandler::CreateSemaphores()
         if (vkCreateSemaphore(oDevice, &tSemaphoreInfo, nullptr, &aoImageAvailableSemaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(oDevice, &tSemaphoreInfo, nullptr, &aoMRTFinishedSemaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(oDevice, &tSemaphoreInfo, nullptr, &aoLightingFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(oDevice, &tSemaphoreInfo, nullptr, &aoComposeFinishedSemaphores[i]) != VK_SUCCESS ||
             vkCreateFence(oDevice, &tFenceInfo, nullptr, &aoInFlightFences[i]) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create semaphores for a frame!");
@@ -123,6 +127,7 @@ void cRenderHandler::DrawFrame(cScene* pScene)
 
     this->SubmitMRTRenderStage(uiImageIndex);
     this->SubmitLightingRenderStage(uiImageIndex);
+    this->SubmitComposeStage(uiImageIndex);
     this->SubmitPresentStage(uiImageIndex);
 
     // Advance to the next frame
@@ -165,6 +170,25 @@ void cRenderHandler::SubmitLightingRenderStage(uint uiImageIndex)
             &oBuffer, 1
     );
 
+    if (!ppLogicalDevice->GraphicsQueueSubmit(1, &tSubmitInfo, oNullFence))
+    {
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+}
+
+void cRenderHandler::SubmitComposeStage(uint uiImageIndex)
+{
+// We only submit the lighting command buffer for this stage
+    VkCommandBuffer oBuffer = ppCommandBuffers[RENDER_STAGE_COMPOSE]->GetBuffer(uiImageIndex);
+
+    // We need to wait for the MRT stage to finish before we can start this stage.
+    // Once this stage is done we can signal the lighting finished semaphore.
+    VkSubmitInfo tSubmitInfo = CreateSubmitInfo(
+            &aoLightingFinishedSemaphores[uiCurrentFrame], VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            &aoComposeFinishedSemaphores[uiCurrentFrame],
+            &oBuffer, 1
+    );
+
     if (!ppLogicalDevice->GraphicsQueueSubmit(1, &tSubmitInfo, aoInFlightFences[uiCurrentFrame]))
     {
         throw std::runtime_error("failed to submit draw command buffer!");
@@ -179,7 +203,7 @@ void cRenderHandler::SubmitPresentStage(uint uiImageIndex)
 
     // We need to wait until the lighting stage is finished rendering
     tPresentInfo.waitSemaphoreCount = 1;
-    tPresentInfo.pWaitSemaphores = &aoLightingFinishedSemaphores[uiCurrentFrame];
+    tPresentInfo.pWaitSemaphores = &aoComposeFinishedSemaphores[uiCurrentFrame];
 
     // Specify the swap chains and the index of the image for each swap chain
     VkSwapchainKHR swapChains[] = {ppSwapChain->poSwapChain};

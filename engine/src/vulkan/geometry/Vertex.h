@@ -22,7 +22,7 @@ struct Vertex
     glm::vec2 texCoord;
 
     static VkVertexInputBindingDescription GetBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 4> GetAttributeDescriptions();
+    static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions();
 
     bool operator==(const Vertex& other) const;
 };

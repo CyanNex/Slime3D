@@ -39,6 +39,7 @@ private:
 
     tOffScreenBuffer ptOffScreenBuffer;
     tFrameBuffer ptOverlayBuffer;
+    tFrameBuffer ptSceneBuffer;
 
 public:
     VkSwapchainKHR poSwapChain; // TODO: Remove public access
@@ -54,7 +55,8 @@ public:
 
     void CreateFramebuffers(VkRenderPass& oFinalRenderPass,
                             VkRenderPass& oOffScreenRenderPass,
-                            VkRenderPass& oOverlayRenderPass);
+                            VkRenderPass& oOverlayRenderPass,
+                            VkRenderPass& oLightingRenderPass);
     void CreateResources();
 
     uint GetFramebufferSize();
@@ -64,6 +66,8 @@ public:
     VkFramebuffer& GetOffScreenFramebuffer();
     tFrameBufferAttachment& GetOverlayAttachment();
     VkFramebuffer& GetOverlayFramebuffer();
+    VkFramebuffer& GetSceneFramebuffer();
+    tFrameBufferAttachment& GetSceneAttachment();
 
     void AcquireNextImage(int64 ulTimeout,
                           VkSemaphore& oSemaphore,

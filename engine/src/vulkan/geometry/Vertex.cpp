@@ -11,9 +11,9 @@ VkVertexInputBindingDescription Vertex::GetBindingDescription()
     return tBindingDescription;
 }
 
-std::array<VkVertexInputAttributeDescription, 4> Vertex::GetAttributeDescriptions()
+std::vector<VkVertexInputAttributeDescription> Vertex::GetAttributeDescriptions()
 {
-    std::array<VkVertexInputAttributeDescription, 4> atAttributeDescriptions = {};
+    std::vector<VkVertexInputAttributeDescription> atAttributeDescriptions(4);
 
     // Attribute at location 0 (pos)
     atAttributeDescriptions[0].binding = 0;

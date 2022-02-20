@@ -1,7 +1,7 @@
-#include <vulkan/module/lighting/LightingRenderPass.h>
+#include "SceneRenderPass.h"
 
-cLightingRenderPass::cLightingRenderPass(cLogicalDevice* pLogicalDevice,
-                                         cSwapChain* pSwapChain) : cRenderPass(pLogicalDevice)
+cSceneRenderPass::cSceneRenderPass(cLogicalDevice* pLogicalDevice,
+                                   cSwapChain* pSwapChain) : cRenderPass(pLogicalDevice)
 {
     // Struct with information about the color attachment
     VkAttachmentDescription tColorAttachment = {};
@@ -51,10 +51,10 @@ cLightingRenderPass::cLightingRenderPass(cLogicalDevice* pLogicalDevice,
     }
 }
 
-void cLightingRenderPass::GetColorAttachment(VkAttachmentDescription& tColorAttachment, cSwapChain* pSwapChain)
+void cSceneRenderPass::GetColorAttachment(VkAttachmentDescription& tColorAttachment,cSwapChain* pSwapChain)
 {
     // Set the format to the format of our swap chain images
-    tColorAttachment.format = pSwapChain->GetSceneAttachment().eFormat;
+    tColorAttachment.format = pSwapChain->peSwapChainImageFormat;
 
     // We're not using multisampling, so stick to 1 sample
     tColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -72,5 +72,5 @@ void cLightingRenderPass::GetColorAttachment(VkAttachmentDescription& tColorAtta
 
     // Layout of the pixels in memory
     tColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    tColorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    tColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 }

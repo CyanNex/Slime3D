@@ -27,7 +27,7 @@ void cOverlayRenderRecorder::Setup(uint uiIndex)
     ptRenderPassInfo.renderArea.extent = ppSwapChain->ptSwapChainExtent;
 
     // Defines the clear color value to use
-    paoClearValues[0].color = {0.0f, 0.0f, 0.0f, 0.0f}; // black with 0% opacity
+    paoClearValues[0].color = {0.9f, 0.9f, 0.9f, 0.2f}; // black with 0% opacity
     ptRenderPassInfo.clearValueCount = (uint) paoClearValues.size();
     ptRenderPassInfo.pClearValues = paoClearValues.data();
 }

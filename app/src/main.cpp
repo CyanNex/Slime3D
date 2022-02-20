@@ -28,6 +28,12 @@ protected:
         shaders.emplace_back("resources/shaders/compiled/text.frag.spv");
     }
 
+    void LoadSceneShaders(std::vector<string>& shaders) override
+    {
+        shaders.emplace_back("resources/shaders/compiled/scene.vert.spv");
+        shaders.emplace_back("resources/shaders/compiled/scene.frag.spv");
+    }
+
     void SetupScenes(std::map<string, cScene*>& mScenes, string* sInitialScene) override
     {
         mScenes["TestScene"] = new cTestScene();

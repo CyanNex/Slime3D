@@ -23,6 +23,7 @@
 #include <vulkan/module/mrt/MRTRenderModule.h>
 #include <vulkan/module/lighting/LightingRenderModule.h>
 #include <vulkan/module/overlay/OverlayRenderModule.h>
+#include <vulkan/module/scene/SceneRenderModule.h>
 
 class cEngine : public iGameManager, public iInputHandler, public iCommandBufferHolder
 {
@@ -50,11 +51,12 @@ private:
     cMRTRenderModule* ppMRTRenderModule = nullptr;
     cOverlayRenderModule* ppOverlayRenderModule = nullptr;
     cLightingRenderModule* ppLightsRenderModule = nullptr;
+    cSceneRenderModule* ppSceneRenderModule = nullptr;
 
     // Command buffers for all render modules
-    cCommandBuffer* papCommandBuffers[3] = {};
+    cCommandBuffer* papCommandBuffers[4] = {};
     // Uniform handlers for all render modules
-    iUniformHandler* papUniformHandlers[3] = {};
+    iUniformHandler* papUniformHandlers[4] = {};
 
     // Gameloop and thread for the gameloop
     cGameLoop* ppGameLoop = nullptr;
@@ -119,6 +121,7 @@ protected:
     virtual void LoadMRTShaders(std::vector<string>& shaders) = 0;
     virtual void LoadLightingShaders(std::vector<string>& shaders) = 0;
     virtual void LoadOverlayShaders(std::vector<string>& shaders) = 0;
+    virtual void LoadSceneShaders(std::vector<string>& shaders) = 0;
 
     // Overlay and scene loading from the application
 //    virtual void LoadOverlayWindows(std::map<string, cOverlayWindow*>& mOverlayWindows) = 0;

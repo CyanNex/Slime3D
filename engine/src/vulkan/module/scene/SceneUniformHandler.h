@@ -5,17 +5,8 @@
 #include <vulkan/uniform/UniformHandler.h>
 #include <vulkan/swapchain/SwapChain.h>
 
-enum eLightingMode
+class cSceneUniformHandler : public iUniformHandler
 {
-    FAST_LIGHTING, FANCY_LIGHTING
-};
-
-class cLightingUniformHandler : public iUniformHandler
-{
-public:
-    static float pfGamma;
-    static eLightingMode peLightingMode;
-
 private:
     cLogicalDevice* ppLogicalDevice;
     cSwapChain* ppSwapChain;
@@ -25,15 +16,12 @@ private:
     VkBuffer poUniformBuffer;
     VkDeviceMemory poUniformBufferMemory;
 
-    VkDescriptorPool poDescriptorPool;
-    VkDescriptorSet poDescriptorSet;
-
-    uint puiLightsCount;
-    size_t puiLightsMemorySize;
+    VkDescriptorPool poDescriptorPool = VK_NULL_HANDLE;
+    VkDescriptorSet poDescriptorSets[2];
 
 public:
-    cLightingUniformHandler(cLogicalDevice* pLogicalDevice, cSwapChain* pSwapChain);
-    ~cLightingUniformHandler() override;
+    cSceneUniformHandler(cLogicalDevice* pLogicalDevice, cSwapChain* pSwapChain);
+    ~cSceneUniformHandler() override;
 
     void SetupUniformBuffers(cTextureHandler* pTextureHandler, cScene* pScene) override;
     void UpdateUniformBuffers(cScene* pScene) override;
@@ -49,6 +37,7 @@ public:
 private:
     void CreateUniformBuffers(cScene* pScene);
     void CreateDescriptorPool();
+    void CreateDescriptorSet(VkDescriptorSet* pDescriptorSet, tFrameBufferAttachment* tAttachment);
     void CreateDescriptorSets(cTextureHandler* pTextureHandler, cScene* pScene);
     void Cleanup();
 };

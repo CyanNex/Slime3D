@@ -10,7 +10,10 @@ void cTestScene::Load(cTextureHandler* pTextureHandler,
 
     pmpMeshes["test_mesh"] = new cMesh(pmpGeometries["test_geometry"], pmpTextures["test_texture"]);
 
-    pmpObjects["test_object"] = new cBaseObject(pmpMeshes["test_mesh"]);
+    cAudioSample* pSample = cAudioSample::FromFile("resources/test.wav");
+    ppSourceObject = new cAudioSource(pmpMeshes["test_mesh"], nullptr, false);
+    ppSourceObject->Load(pSample, false);
+    pmpObjects["test_object"] = ppSourceObject;
 
     pmpObjects["test_light"] = new cLightObject(pmpMeshes["test_mesh"], glm::vec3(1, 0, 1), 12);
     pmpObjects["test_light"]->SetPosition(glm::vec3(2, 2, 2));
@@ -24,6 +27,8 @@ void cTestScene::Load(cTextureHandler* pTextureHandler,
 
 void cTestScene::Update()
 {
+    static bool bStarted = false;
+
     if (paKeys[GLFW_KEY_W])
         poCamera->Forward();
     if (paKeys[GLFW_KEY_S])
@@ -38,6 +43,18 @@ void cTestScene::Update()
         poCamera->MoveDown();
     if (paKeys[GLFW_KEY_ESCAPE])
         this->Quit();
+
+    if (paKeys[GLFW_KEY_E] && !bStarted)
+    {
+        bStarted = true;
+        ppSourceObject->Play();
+    }
+
+    if (paKeys[GLFW_KEY_R] && bStarted)
+    {
+        bStarted = false;
+        ppSourceObject->Stop();
+    }
 
     cScene::Update();
 }

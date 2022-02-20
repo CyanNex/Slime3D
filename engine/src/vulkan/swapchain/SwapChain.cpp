@@ -201,7 +201,8 @@ void cSwapChain::CreateImageViews()
 
 void cSwapChain::CreateFramebuffers(VkRenderPass& oFinalRenderPass,
                                     VkRenderPass& oOffScreenRenderPass,
-                                    VkRenderPass& oOverlayRenderPass)
+                                    VkRenderPass& oOverlayRenderPass,
+                                    VkRenderPass& oLightingRenderPass)
 {
     // Resize the framebuffers list to fit the image views
     paoSwapChainFramebuffers.resize(paoSwapChainImageViews.size());
@@ -233,7 +234,7 @@ void cSwapChain::CreateFramebuffers(VkRenderPass& oFinalRenderPass,
         }
     }
 
-    std::array<VkImageView, 5> atAttachments;
+    std::array<VkImageView, 5> atAttachments{};
     atAttachments[0] = ptOffScreenBuffer.ptPositionAttachment.oView;
     atAttachments[1] = ptOffScreenBuffer.ptNormalsAttachment.oView;
     atAttachments[2] = ptOffScreenBuffer.ptAlbedoAttachment.oView;
@@ -242,7 +243,7 @@ void cSwapChain::CreateFramebuffers(VkRenderPass& oFinalRenderPass,
 
     VkFramebufferCreateInfo tFramebufferInfo = {};
     tFramebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    tFramebufferInfo.pNext = NULL;
+    tFramebufferInfo.pNext = nullptr;
     tFramebufferInfo.renderPass = oOffScreenRenderPass;
     tFramebufferInfo.pAttachments = atAttachments.data();
     tFramebufferInfo.attachmentCount = (uint) atAttachments.size();
@@ -259,7 +260,7 @@ void cSwapChain::CreateFramebuffers(VkRenderPass& oFinalRenderPass,
 
     VkFramebufferCreateInfo tOverlayBufferInfo = {};
     tOverlayBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    tOverlayBufferInfo.pNext = NULL;
+    tOverlayBufferInfo.pNext = nullptr;
     tOverlayBufferInfo.renderPass = oOverlayRenderPass;
     tOverlayBufferInfo.pAttachments = &ptOverlayBuffer.ptColorAttachment.oView;
     tOverlayBufferInfo.attachmentCount = 1;
@@ -272,6 +273,23 @@ void cSwapChain::CreateFramebuffers(VkRenderPass& oFinalRenderPass,
                             &ptOverlayBuffer.poFramebuffer) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create overlay framebuffer!");
+    }
+
+    VkFramebufferCreateInfo tLightingBufferInfo = {};
+    tLightingBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    tLightingBufferInfo.pNext = nullptr;
+    tLightingBufferInfo.renderPass = oLightingRenderPass;
+    tLightingBufferInfo.pAttachments = &ptSceneBuffer.ptColorAttachment.oView;
+    tLightingBufferInfo.attachmentCount = 1;
+    tLightingBufferInfo.width = ptSwapChainExtent.width;
+    tLightingBufferInfo.height = ptSwapChainExtent.height;
+    tLightingBufferInfo.layers = 1;
+
+    // Create the framebuffer
+    if (vkCreateFramebuffer(ppLogicalDevice->GetDevice(), &tLightingBufferInfo, nullptr,
+                            &ptSceneBuffer.poFramebuffer) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create scene framebuffer!");
     }
 }
 
@@ -300,6 +318,9 @@ void cSwapChain::CreateResources() // TODO: This might belong somewhere else
 
     cSwapChainHelper::CreateAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                        &ptOverlayBuffer.ptColorAttachment, ppLogicalDevice, ptSwapChainExtent);
+
+    cSwapChainHelper::CreateAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                       &ptSceneBuffer.ptColorAttachment, ppLogicalDevice, ptSwapChainExtent);
 
     // Create sampler to sample from the color attachments
     VkSamplerCreateInfo tSampler = {};
@@ -380,13 +401,14 @@ void cSwapChain::Cleanup()
 {
     VkDevice& oDevice = ppLogicalDevice->GetDevice(); // TODO: Use internal cLogicalDevice methods
 
-    std::array<tFrameBufferAttachment*, 6> aptAttachments = {
+    std::array<tFrameBufferAttachment*, 7> aptAttachments = {
             &ptOffScreenBuffer.ptPositionAttachment,
             &ptOffScreenBuffer.ptNormalsAttachment,
             &ptOffScreenBuffer.ptAlbedoAttachment,
             &ptOffScreenBuffer.ptDepthAttachment,
             &ptOffScreenBuffer.ptMaterialAttachment,
-            &ptOverlayBuffer.ptColorAttachment
+            &ptOverlayBuffer.ptColorAttachment,
+            &ptSceneBuffer.ptColorAttachment
     };
     for (tFrameBufferAttachment* pAttachment : aptAttachments)
     {
@@ -404,6 +426,7 @@ void cSwapChain::Cleanup()
     }
     vkDestroyFramebuffer(oDevice, ptOffScreenBuffer.poFramebuffer, nullptr);
     vkDestroyFramebuffer(oDevice, ptOverlayBuffer.poFramebuffer, nullptr);
+    vkDestroyFramebuffer(oDevice, ptSceneBuffer.poFramebuffer, nullptr);
 
     // Destroy all the image views
     for (VkImageView imageView : paoSwapChainImageViews)
@@ -453,4 +476,14 @@ tFrameBufferAttachment& cSwapChain::GetOverlayAttachment()
 VkFramebuffer& cSwapChain::GetOverlayFramebuffer()
 {
     return ptOverlayBuffer.poFramebuffer;
+}
+
+VkFramebuffer& cSwapChain::GetSceneFramebuffer()
+{
+    return ptSceneBuffer.poFramebuffer;
+}
+
+tFrameBufferAttachment& cSwapChain::GetSceneAttachment()
+{
+    return ptSceneBuffer.ptColorAttachment;
 }

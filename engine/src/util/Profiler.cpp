@@ -1,6 +1,8 @@
 #include <util/Profiler.h>
 #include <util/EngineLog.h>
 
+#define ENABLE_FPS_COUNT
+
 using namespace std::chrono;
 
 cProfiler cProfiler::poInstance;

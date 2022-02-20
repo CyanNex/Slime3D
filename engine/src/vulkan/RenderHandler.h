@@ -21,6 +21,7 @@ private:
     std::vector<VkSemaphore> aoImageAvailableSemaphores;
     std::vector<VkSemaphore> aoMRTFinishedSemaphores;
     std::vector<VkSemaphore> aoLightingFinishedSemaphores;
+    std::vector<VkSemaphore> aoComposeFinishedSemaphores;
 
     std::vector<VkFence> aoInFlightFences;
 
@@ -41,6 +42,7 @@ public:
 private:
     void SubmitMRTRenderStage(uint uiImageIndex);
     void SubmitLightingRenderStage(uint uiImageIndex);
+    void SubmitComposeStage(uint uiImageIndex);
     void SubmitPresentStage(uint uiImageIndex);
 
     static VkSubmitInfo CreateSubmitInfo(VkSemaphore* poWaitSemaphore, VkPipelineStageFlags eWaitStage,

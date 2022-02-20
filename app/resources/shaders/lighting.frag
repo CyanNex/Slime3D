@@ -159,7 +159,8 @@ vec3 HandlePBR(vec3 fragPos, vec3 norm, vec3 albedo, vec2 material)
 void main()
 {
     // If there is a fragment of the overlay with 100% opacity, render it and skip the lighting calculations
-    vec4 overlay = texture(samplerOverlay, inTexCoord);
+//    vec4 overlay = texture(samplerOverlay, inTexCoord);
+    vec4 overlay = vec4(0, 0, 0, 0);
     if (overlay.a == 1)
     {
         FragColor = overlay;

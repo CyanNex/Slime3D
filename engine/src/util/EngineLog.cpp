@@ -1,3 +1,5 @@
+#ifndef NDEBUG
+
 #include <util/EngineLog.h>
 #include <mutex>
 #include <chrono>
@@ -21,3 +23,5 @@ ulong cEngineLog::TimeSinceStart()
 {
     return duration_cast<milliseconds>(steady_clock::now() - EngineLog_StartTime).count();
 }
+
+#endif // NDEBUG

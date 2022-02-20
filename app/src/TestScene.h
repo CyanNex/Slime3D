@@ -1,6 +1,7 @@
 #pragma once
 
 #include <scene/Scene.h>
+#include <audio/AudioSource.h>
 
 class cTestScene : public cScene
 {
@@ -9,4 +10,7 @@ public:
               cGeometryHandler* pGeometryHandler,
               cLogicalDevice* pLogicalDevice) override;
     void Update() override;
+
+private:
+    cAudioSource* ppSourceObject;
 };
